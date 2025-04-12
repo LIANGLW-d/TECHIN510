@@ -3,6 +3,9 @@ This project is to design a website for a training motion tracker. This training
 bench press, dead lift or squat. The webstie is for exhibiting purpose mainly. It will show the design of this product, how it will be used and related information in terms of
 CMF(Color, Manufacturing, Finish).
 
+##target User:
+Training beginners and gym enthuisasts
+
 ##Basic features:
 - **Scroll-Based 3D Animation** – The product rotates and is revealed dynamically as the user scrolls through the page.
 - **Scroll-Triggered Storytelling** – The website highlights key product benefits through a narrative-style scroll layout.
@@ -22,3 +25,8 @@ CMF(Color, Manufacturing, Finish).
 | 10   | Final delivery and project presentation |
 
 ---
+##Contact Information
+Client: Steven Liang
+Email: lliang51@uw.edu
+Developer: Hanyang wang
+Email: hanyaw3@uw.edu
