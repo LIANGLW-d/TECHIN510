@@ -4,9 +4,21 @@ bench press, dead lift or squat. The webstie is for exhibiting purpose mainly. I
 CMF(Color, Manufacturing, Finish).
 
 ##Basic features:
-1. hero shots of the product with clickable buttons(used for specific information)
-2. illustraction of how to use the product
-3. Some data that can be collocted by the product
+- **Scroll-Based 3D Animation** – The product rotates and is revealed dynamically as the user scrolls through the page.
+- **Scroll-Triggered Storytelling** – The website highlights key product benefits through a narrative-style scroll layout.
+- **Interactive Form Test** – Users can drag a virtual barbell in an exercise animation (bench press, squat, or deadlift) to test form. An embedded ML model will verify whether the movement is correct or not.
+- **Responsive and Modern Design** – Built for both desktop and mobile browsers, with a clean and immersive UI.
 
-##Nice-to-have features:
-1. scroll-controlled 3D product animation
+##Time line
+| Week | Milestone |
+|------|-----------|
+| 1    | Kickoff & ideation |
+| 2    | Confirm features, start 3D animation prototype |
+| 3    | Develop storytelling structure and first interaction |
+| 4–5  | Implement movement interaction and ML logic |
+| 6–7  | Refine visuals, animations, and performance optimization |
+| 8    | Conduct user testing and collect feedback |
+| 9    | Final tweaks, bug fixes, and polishing |
+| 10   | Final delivery and project presentation |
+
+---
