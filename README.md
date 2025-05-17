@@ -30,6 +30,45 @@ Email: lliang51@uw.edu
 Developer: Hanyang Wang  
 Email: hanyaw3@uw.edu
 
+## Setup Instructions
+
+### Prerequisites
+- [Node.js](https://nodejs.org/) (v16 or higher recommended)
+- [Python 3](https://www.python.org/) (for the Flask backend)
+- [pip](https://pip.pypa.io/en/stable/)
+
+### 1. Clone the repository
+```bash
+git clone https://github.com/LIANGLW-d/TECHIN510.git
+cd TECHIN510/motion-tracker
+```
+
+### 2. Install Frontend Dependencies
+```bash
+npm install
+```
+
+### 3. Install Backend Dependencies
+```bash
+pip install flask flask-cors
+```
+
+### 4. Run the Flask Backend
+```bash
+python server.py
+```
+- The backend will start on [http://localhost:5050](http://localhost:5050)
+
+### 5. Run the Frontend (Next.js/Vite)
+```bash
+npm run dev
+```
+- The frontend will start on [http://localhost:3000](http://localhost:3000) or as indicated in the terminal.
+
+### 6. ESP32 Sensor Integration (Optional)
+- Ensure your ESP32 is programmed to POST sensor data to `http://<your-computer-ip>:5050/sensor`.
+- The Flask backend will receive and serve the latest sensor data to the frontend.
+
 ---
 
 # Next.js Project Instructions
