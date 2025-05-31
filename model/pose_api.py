@@ -6,7 +6,7 @@ import numpy as np
 app = Flask(__name__)
 CORS(app)
 
-MODEL_PATH = 'pose_classifier.pkl'
+MODEL_PATH = 'model/pose_classifier.pkl'
 LABEL_MAP = {
     'good': 'Deadlift: Correct',
     'wideleg': 'Deadlift: Legs Too Wide',
