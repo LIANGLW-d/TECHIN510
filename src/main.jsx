@@ -81,7 +81,7 @@ function App() {
     // Fetch sensor data and detect shake
     React.useEffect(() => {
         const interval = setInterval(() => {
-            fetch('http://localhost:5050/sensor')
+            fetch(`${import.meta.env.VITE_API_URL}/sensor`)
                 .then(res => res.json())
                 .then(data => {
                     setSensorData(data);
@@ -131,7 +131,7 @@ function App() {
                         // Use 3D keypoints if available (x, y, z, score)
                         const keypoints = poses[0].keypoints3D.flatMap(kp => [kp.x, kp.y, kp.z, kp.score]);
                         // Send to API
-                        fetch('http://localhost:5050/classify', {
+                        fetch(`${import.meta.env.VITE_API_URL}/classify`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ keypoints })
@@ -142,7 +142,7 @@ function App() {
                     } else if (poses && poses[0] && poses[0].keypoints && poses[0].keypoints.length === 33) {
                         // Fallback to 2D keypoints (x, y, score, set z=0)
                         const keypoints = poses[0].keypoints.flatMap(kp => [kp.x, kp.y, 0, kp.score]);
-                        fetch('http://localhost:5050/classify', {
+                        fetch(`${import.meta.env.VITE_API_URL}/classify`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({ keypoints })
