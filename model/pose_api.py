@@ -6,10 +6,14 @@ import numpy as np
 app = Flask(__name__)
 CORS(app)
 
-MODEL_PATH = 'model/pose_classifier.pkl'
+MODEL_PATH = 'pose_classifier.pkl'
 LABEL_MAP = {
-    'good': 'Good posture',
-    'wideleg': 'Too wide stance'
+    'good': 'Deadlift: Correct',
+    'wideleg': 'Deadlift: Legs Too Wide',
+    'shoulderpress': 'Shoulder Press: Correct',
+    'shoulderpress_bad1': 'Shoulder Press: Incorrect Form',
+    'flyes': 'Flyes: Correct',
+    'flyes_bad': 'Flyes: Incorrect Arm Position'
 }
 
 clf = joblib.load(MODEL_PATH)

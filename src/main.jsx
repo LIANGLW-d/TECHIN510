@@ -5,6 +5,9 @@ import { OrbitControls } from '@react-three/drei';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { Placeholder3D } from './components/Placeholder3D';
+import * as posedetection from '@tensorflow-models/pose-detection';
+import '@tensorflow/tfjs-backend-webgl';
+import * as tf from '@tensorflow/tfjs-core';
 
 console.log('Application starting...'); // Debug log
 
@@ -66,6 +69,9 @@ function App() {
     const [recording, setRecording] = useState(false);
     const [cameraError, setCameraError] = useState(null);
     const videoRef = React.useRef(null);
+    const [feedback, setFeedback] = useState('');
+    const detectorRef = React.useRef(null);
+    const animationRef = React.useRef(null);
 
     // --- Sensor Data State ---
     const [sensorData, setSensorData] = useState({});
@@ -94,28 +100,78 @@ function App() {
         return () => clearInterval(interval);
     }, [lastAccel]);
 
-    // Start webcam
+    // Start webcam and pose detection
     const startRecording = async () => {
         setCameraError(null);
         setRecording(true);
+        setFeedback('');
         try {
             const stream = await navigator.mediaDevices.getUserMedia({ video: true });
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
             }
             await videoRef.current.play();
+
+            // Ensure tfjs backend is ready
+            await tf.setBackend('webgl');
+            await tf.ready();
+
+            // Load BlazePose detector
+            detectorRef.current = await posedetection.createDetector(posedetection.SupportedModels.BlazePose, {
+                runtime: 'tfjs',
+                modelType: 'full',
+            });
+
+            // Start pose detection loop
+            const detectPose = async () => {
+                if (!videoRef.current || videoRef.current.paused || videoRef.current.ended) return;
+                if (detectorRef.current) {
+                    const poses = await detectorRef.current.estimatePoses(videoRef.current);
+                    if (poses && poses[0] && poses[0].keypoints3D && poses[0].keypoints3D.length === 33) {
+                        // Use 3D keypoints if available (x, y, z, score)
+                        const keypoints = poses[0].keypoints3D.flatMap(kp => [kp.x, kp.y, kp.z, kp.score]);
+                        // Send to API
+                        fetch('http://localhost:5050/classify', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ keypoints })
+                        })
+                        .then(res => res.json())
+                        .then(data => setFeedback(data.result))
+                        .catch(() => setFeedback('API error'));
+                    } else if (poses && poses[0] && poses[0].keypoints && poses[0].keypoints.length === 33) {
+                        // Fallback to 2D keypoints (x, y, score, set z=0)
+                        const keypoints = poses[0].keypoints.flatMap(kp => [kp.x, kp.y, 0, kp.score]);
+                        fetch('http://localhost:5050/classify', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ keypoints })
+                        })
+                        .then(res => res.json())
+                        .then(data => setFeedback(data.result))
+                        .catch(() => setFeedback('API error'));
+                    }
+                }
+                animationRef.current = requestAnimationFrame(detectPose);
+            };
+            detectPose();
         } catch (err) {
             setCameraError('Could not access webcam: ' + err.message);
         }
     };
 
-    // Stop webcam
+    // Stop webcam and pose detection
     const stopRecording = () => {
         setRecording(false);
+        setFeedback('');
         if (videoRef.current && videoRef.current.srcObject) {
             videoRef.current.srcObject.getTracks().forEach(track => track.stop());
             videoRef.current.srcObject = null;
         }
+        if (animationRef.current) {
+            cancelAnimationFrame(animationRef.current);
+        }
+        detectorRef.current = null;
     };
 
     React.useEffect(() => {
@@ -144,18 +200,61 @@ function App() {
                 </div>
             </section>
 
-            <section id="product-3d-view">
-                <Canvas camera={{ position: [0, 2, 5] }}>
-                    <ambientLight intensity={0.5} />
-                    <pointLight position={[10, 10, 10]} />
-                    <Placeholder3D color={selectedColor} />
-                    <OrbitControls />
-                </Canvas>
+            <section className="problem-section" style={{ background: 'linear-gradient(135deg, #f8fafc 0%, #e8ecf3 100%)', padding: '56px 0' }}>
+                <div className="problem-content" style={{
+                    maxWidth: 1100,
+                    margin: '0 auto',
+                    display: 'flex',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 48,
+                    padding: '0 24px',
+                }}>
+                    <div style={{ flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center', minWidth: 280 }}>
+                        <img src="/deadlift_cover.jpg" alt="Deadlift" style={{ maxWidth: '100%', maxHeight: 340, borderRadius: 24, boxShadow: '0 6px 32px rgba(0,0,0,0.10)', objectFit: 'cover', background: '#eaeaea' }} />
+                    </div>
+                    <div style={{ flex: 2, minWidth: 280 }}>
+                        <h2 style={{ display: 'flex', alignItems: 'center', gap: 12, fontSize: 32, fontWeight: 700, margin: 0, letterSpacing: -1, lineHeight: 1.2 }}>
+                            <img src="/file.svg" alt="Problem Icon" style={{ width: 32, height: 32, verticalAlign: 'middle', filter: 'brightness(0) saturate(100%)' }} />
+                            The Problem
+                        </h2>
+                        <p style={{ fontSize: 18, color: '#222', margin: '24px 0 0 0', lineHeight: 1.7 }}>
+                            In the gym, good form isn't optional—it's essential.<br/>
+                            Yet for most people, especially beginners, there's no easy way to know if they're lifting correctly. Personal trainers are expensive. Mirrors don't show posture clearly. And form mistakes often go unnoticed until they result in injury.
+                        </p>
+                        <p style={{ fontSize: 18, color: '#222', margin: '18px 0 0 0', lineHeight: 1.7 }}>
+                            We asked: What if anyone could get real-time feedback like a pro athlete—just using a laptop and a smart sensor?
+                        </p>
+                    </div>
+                </div>
+                <style>{`
+                @media (max-width: 900px) {
+                  .problem-content {
+                    flex-direction: column !important;
+                    gap: 32px !important;
+                  }
+                }
+                `}</style>
             </section>
 
             <section className="features">
                 <div className="feature" data-scroll>
-                    <h2>Real-time Form Analysis</h2>
+                    <h2 style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <img src="/globe.svg" alt="Idea Icon" style={{ width: 32, height: 32, verticalAlign: 'middle', filter: 'brightness(0) saturate(100%)' }} />
+                        The Idea
+                    </h2>
+                    <p>Motion Tracker is a hybrid computer vision and sensor-based coaching tool designed for strength training. It combines camera-based posture analysis with barbell-mounted motion sensing to deliver precise, real-time feedback—helping users improve every rep.</p>
+                    <p>We built it to answer two key questions for every lift:</p>
+                    <ul>
+                        <li>Was the movement correct?</li>
+                        <li>If not, where exactly did you go wrong?</li>
+                    </ul>
+                </div>
+                <div className="feature" data-scroll>
+                    <h2 style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <img src="/window.svg" alt="Form Analysis Icon" style={{ width: 32, height: 32, verticalAlign: 'middle', filter: 'brightness(0) saturate(100%)' }} />
+                        Real-time Form Analysis
+                    </h2>
                     <p>Get instant feedback on your exercise form with our advanced motion tracking technology. Our system analyzes your movements in real-time, providing immediate corrections and suggestions to improve your technique.</p>
                     <p>Key features include:</p>
                     <ul>
@@ -166,7 +265,10 @@ function App() {
                     </ul>
                 </div>
                 <div className="feature" data-scroll>
-                    <h2>Multiple Exercise Support</h2>
+                    <h2 style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <img src="/dumbbell.svg" alt="Exercise Support Icon" style={{ width: 32, height: 32, verticalAlign: 'middle', filter: 'brightness(0) saturate(100%)' }} />
+                        Multiple Exercise Support
+                    </h2>
                     <p>Perfect your bench press, squat, and deadlift with our comprehensive exercise library. Each exercise comes with detailed form guides and common mistakes to avoid.</p>
                     <p>Supported exercises:</p>
                     <ul>
@@ -177,7 +279,10 @@ function App() {
                     </ul>
                 </div>
                 <div className="feature" data-scroll>
-                    <h2>Smart Tracking</h2>
+                    <h2 style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <img src="/cpu.svg" alt="Smart Tracking Icon" style={{ width: 32, height: 32, verticalAlign: 'middle', filter: 'brightness(0) saturate(100%)' }} />
+                        Smart Tracking
+                    </h2>
                     <p>Our advanced ML algorithms provide precise movement analysis, helping you achieve perfect form every time.</p>
                     <p>Technology features:</p>
                     <ul>
@@ -226,6 +331,10 @@ function App() {
                         )}
                         {shakeDetected && <div style={{ color: 'yellow', fontWeight: 'bold', marginTop: 8 }}>Shake detected!</div>}
                     </div>
+                </div>
+                {/* Feedback below the video */}
+                <div style={{ marginTop: 24, fontSize: 24, fontWeight: 600, color: feedback.includes('Correct') ? 'green' : feedback ? 'red' : '#333', minHeight: 32 }}>
+                    {feedback}
                 </div>
             </section>
 
