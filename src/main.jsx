@@ -62,6 +62,25 @@ function ColorCustomization({ onColorChange }) {
     );
 }
 
+// Add this function near the top of App or outside it:
+function getFormSuggestion(classification) {
+    if (classification.includes('Deadlift: Correct')) {
+        return 'Great form! Keep your back straight and core engaged.';
+    } else if (classification.includes('Deadlift: Legs Too Wide')) {
+        return 'Bring your feet closer together for better stability.';
+    } else if (classification.includes('Shoulder Press: Correct')) {
+        return 'Excellent! Maintain steady upward motion.';
+    } else if (classification.includes('Shoulder Press: Incorrect')) {
+        return 'Watch your elbow and wrist alignment. Keep your core tight.';
+    } else if (classification.includes('Flyes: Correct')) {
+        return 'Good job! Control the movement and avoid swinging.';
+    } else if (classification.includes('Flyes: Incorrect')) {
+        return 'Adjust your arm angle; keep elbows slightly bent.';
+    } else {
+        return 'Keep going! Focus on controlled movement.';
+    }
+}
+
 // Main App Component
 function App() {
     const [selectedColor, setSelectedColor] = useState('#3498db');
@@ -152,7 +171,7 @@ function App() {
                         .catch(() => setFeedback('API error'));
                     }
                 }
-                animationRef.current = requestAnimationFrame(detectPose);
+                animationRef.current = setTimeout(detectPose, 2000);
             };
             detectPose();
         } catch (err) {
@@ -169,7 +188,7 @@ function App() {
             videoRef.current.srcObject = null;
         }
         if (animationRef.current) {
-            cancelAnimationFrame(animationRef.current);
+            clearTimeout(animationRef.current);
         }
         detectorRef.current = null;
     };
@@ -269,12 +288,12 @@ function App() {
                         <img src="/dumbbell.svg" alt="Exercise Support Icon" style={{ width: 32, height: 32, verticalAlign: 'middle', filter: 'brightness(0) saturate(100%)' }} />
                         Multiple Exercise Support
                     </h2>
-                    <p>Perfect your bench press, squat, and deadlift with our comprehensive exercise library. Each exercise comes with detailed form guides and common mistakes to avoid.</p>
+                    <p>Perfect your shoulder press, flyes, and squat with our comprehensive exercise library. Each exercise comes with detailed form guides and common mistakes to avoid.</p>
                     <p>Supported exercises:</p>
                     <ul>
-                        <li>Bench Press - Full range of motion tracking</li>
-                        <li>Squat - Depth and form analysis</li>
-                        <li>Deadlift - Back position monitoring</li>
+                        <li>Shoulder Press - Full range of motion tracking</li>
+                        <li>Flyes - Posture and form analysis</li>
+                        <li>Deadlift - Leg position monitoring</li>
                         <li>More exercises coming soon</li>
                     </ul>
                 </div>
@@ -336,6 +355,11 @@ function App() {
                 <div style={{ marginTop: 24, fontSize: 24, fontWeight: 600, color: feedback.includes('Correct') ? 'green' : feedback ? 'red' : '#333', minHeight: 32 }}>
                     {feedback}
                 </div>
+                {feedback && (
+                    <div style={{ marginTop: 8, fontSize: 18, color: '#555', minHeight: 24 }}>
+                        {getFormSuggestion(feedback)}
+                    </div>
+                )}
             </section>
 
             <section className="cmf">
