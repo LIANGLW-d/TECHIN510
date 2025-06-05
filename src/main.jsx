@@ -91,6 +91,7 @@ function App() {
     const [feedback, setFeedback] = useState('');
     const detectorRef = React.useRef(null);
     const animationRef = React.useRef(null);
+    const canvasRef = React.useRef(null);
 
     // --- Sensor Data State ---
     const [sensorData, setSensorData] = useState({});
@@ -147,8 +148,8 @@ function App() {
                 if (detectorRef.current) {
                     const poses = await detectorRef.current.estimatePoses(videoRef.current);
                     if (poses && poses[0] && poses[0].keypoints3D && poses[0].keypoints3D.length === 33) {
-                        // Use 3D keypoints if available (x, y, z, score)
-                        const keypoints = poses[0].keypoints3D.flatMap(kp => [kp.x, kp.y, kp.z, kp.score]);
+                        const keypoints = poses[0].keypoints3D.flatMap(kp => [kp.x * 1600, kp.y * 900, kp.z, kp.score]);
+                        drawLandmarks(keypoints);
                         // Send to API
                         fetch(`${import.meta.env.VITE_API_URL}/classify`, {
                             method: 'POST',
@@ -159,8 +160,8 @@ function App() {
                         .then(data => setFeedback(data.result))
                         .catch(() => setFeedback('API error'));
                     } else if (poses && poses[0] && poses[0].keypoints && poses[0].keypoints.length === 33) {
-                        // Fallback to 2D keypoints (x, y, score, set z=0)
-                        const keypoints = poses[0].keypoints.flatMap(kp => [kp.x, kp.y, 0, kp.score]);
+                        const keypoints = poses[0].keypoints.flatMap(kp => [kp.x * 1600, kp.y * 900, 0, kp.score]);
+                        drawLandmarks(keypoints);
                         fetch(`${import.meta.env.VITE_API_URL}/classify`, {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
@@ -331,6 +332,12 @@ function App() {
                         height={900}
                         style={{ borderRadius: 8, background: '#222', width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0 }}
                     />
+                    <canvas
+                        ref={canvasRef}
+                        width={1600}
+                        height={900}
+                        style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none', width: '100%', height: '100%' }}
+                    />
                     {cameraError && <p style={{ color: 'red', position: 'absolute', top: 0 }}>{cameraError}</p>}
                     {/* Sensor Data Display */}
                     <div style={{ position: 'absolute', bottom: 16, left: 16, background: 'rgba(0,0,0,0.7)', color: '#fff', padding: 16, borderRadius: 8, minWidth: 220 }}>
@@ -417,4 +424,75 @@ if (rootElement) {
     );
 } else {
     console.error('Root element not found!'); // Debug log
-} 
+}
+
+// Add a ref for the canvas
+const canvasRef = React.useRef(null);
+
+// In the 'Try it Yourself' section, add a canvas overlay above the video
+<div id="exercise-canvas" style={{ position: 'relative', width: '100%', maxWidth: 1600, height: 900, marginTop: 24 }}>
+    <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        width={1600}
+        height={900}
+        style={{ borderRadius: 8, background: '#222', width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0 }}
+    />
+    <canvas
+        ref={canvasRef}
+        width={1600}
+        height={900}
+        style={{ position: 'absolute', top: 0, left: 0, pointerEvents: 'none', width: '100%', height: '100%' }}
+    />
+    {cameraError && <p style={{ color: 'red', position: 'absolute', top: 0 }}>{cameraError}</p>}
+    {/* Sensor Data Display */}
+    <div style={{ position: 'absolute', bottom: 16, left: 16, background: 'rgba(0,0,0,0.7)', color: '#fff', padding: 16, borderRadius: 8, minWidth: 220 }}>
+        <div><b>Sensor Data</b></div>
+        {sensorData && Object.keys(sensorData).length > 0 ? (
+            <ul style={{ margin: 0, padding: 0, listStyle: 'none' }}>
+                <li>ax: {sensorData.ax}</li>
+                <li>ay: {sensorData.ay}</li>
+                <li>az: {sensorData.az}</li>
+                <li>gx: {sensorData.gx}</li>
+                <li>gy: {sensorData.gy}</li>
+                <li>gz: {sensorData.gz}</li>
+                <li>temp: {sensorData.temp}</li>
+            </ul>
+        ) : (
+            <div>No sensor data</div>
+        )}
+        {shakeDetected && <div style={{ color: 'yellow', fontWeight: 'bold', marginTop: 8 }}>Shake detected!</div>}
+    </div>
+</div>
+
+// In detectPose, after receiving poses, draw landmarks on the canvas
+const drawLandmarks = (keypoints) => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    if (!keypoints || keypoints.length === 0) return;
+    ctx.fillStyle = 'red';
+    for (let i = 0; i < keypoints.length; i += 4) {
+        const x = keypoints[i];
+        const y = keypoints[i + 1];
+        // keypoints are in pixel coordinates (for BlazePose), scale if needed
+        ctx.beginPath();
+        ctx.arc(x, y, 6, 0, 2 * Math.PI);
+        ctx.fill();
+    }
+};
+
+// In detectPose, after extracting keypoints, call drawLandmarks(keypoints)
+if (poses && poses[0] && poses[0].keypoints3D && poses[0].keypoints3D.length === 33) {
+    const keypoints = poses[0].keypoints3D.flatMap(kp => [kp.x * 1600, kp.y * 900, kp.z, kp.score]);
+    drawLandmarks(keypoints);
+    // ... existing code ...
+} else if (poses && poses[0] && poses[0].keypoints && poses[0].keypoints.length === 33) {
+    const keypoints = poses[0].keypoints.flatMap(kp => [kp.x * 1600, kp.y * 900, 0, kp.score]);
+    drawLandmarks(keypoints);
+    // ... existing code ...
+}
+
+// ... existing code ... 
